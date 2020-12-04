@@ -54,7 +54,7 @@ class Player:
         self.distance = [[0 if world.matrix[i][j] == NONE else -1 for j in range(WORLD_HEIGHT)] for i in range(WORLD_WIDTH)]
         self.pathF(self.cellX, self.cellY, 0)
 
-    def generatePath(self, world):
+    def generatePath(self):
         if self.distance[self.selectedCellX][self.selectedCellY] not in [0, -1]:
             x, y = self.selectedCellX, self.selectedCellY
             path = [(x, y)]
