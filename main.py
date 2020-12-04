@@ -158,7 +158,7 @@ def main():
                     player.unselectCell()
                 else:
                     player.selectCell(x1, y1)
-                    player.generatePath(world)
+                    player.generatePath()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     player.move(world)
