@@ -9,13 +9,13 @@ BLOCK = 1
 WORLD_WIDTH = 10
 WORLD_HEIGHT = 10
 
+CELL_SIZE = 50
+
 WORLD_RENDER_DELTA_X = 150
 WORLD_RENDER_DELTA_Y = 50
 
-CELL_SIZE = 50
-
 class Player:
-    def __init__(self):
+    def __init__(self, world):
         self.cellX = 5
         self.cellY = 5
 
@@ -24,12 +24,12 @@ class Player:
         self.selectedCellX = -1
         self.selectedCellY = -1
 
-        self.cells = []
+        self.distance = []
+        self.updateDistance(world)
 
     def selectCell(self, x, y):
         self.selectedCellX = x
         self.selectedCellY = y
-
 
     def unselectCell(self):
         self.path = []
@@ -38,8 +38,8 @@ class Player:
 
     def pathF(self, x, y, length):
         length += 1
-        if self.cells[x][y] != -1 and self.cells[x][y] == 0 or self.cells[x][y] > length:
-            self.cells[x][y] = length
+        if self.distance[x][y] != -1 and self.distance[x][y] == 0 or self.distance[x][y] > length:
+            self.distance[x][y] = length
 
             for i, j in [(-1, 0), (0, -1), (0, 1), (1, 0)]:
                 if 0 <= x + i < WORLD_WIDTH and 0 <= y + j < WORLD_HEIGHT:
@@ -47,40 +47,38 @@ class Player:
 
             for i, j, x1, y1, x2, y2 in [(-1, -1, -1, 0, 0, -1), (1, -1, 1, 0, 0, -1), (-1, 1, -1, 0, 0, 1), (1, 1, 1, 0, 0, 1)]:
                 if 0 <= x + i < WORLD_WIDTH and 0 <= y + j < WORLD_HEIGHT:
-                    if self.cells[x + x1][y + y1] != -1 and self.cells[x + x2][y + y2] != -1:
+                    if self.distance[x + x1][y + y1] != -1 and self.distance[x + x2][y + y2] != -1:
                         self.pathF(x + i, y + j, length)
 
+    def updateDistance(self, world):
+        self.distance = [[0 if world.matrix[i][j] == NONE else -1 for j in range(WORLD_HEIGHT)] for i in range(WORLD_WIDTH)]
+        self.pathF(self.cellX, self.cellY, 0)
+
     def generatePath(self, world):
-        self.cells = [[0 if world.matrix[i][j] == NONE else -1 for j in range(WORLD_HEIGHT)] for i in range(WORLD_WIDTH)]
+        if self.distance[self.selectedCellX][self.selectedCellY] not in [0, -1]:
+            x, y = self.selectedCellX, self.selectedCellY
+            path = [(x, y)]
 
-        if self.cells[self.selectedCellX][self.selectedCellY] == 0:
-            self.pathF(self.cellX, self.cellY, 0)
+            while not(x == self.cellX and y == self.cellY):
+                length = self.distance[x][y]
+                for i, j in [(-1, 0), (0, -1), (0, 1), (1, 0), (1, -1), (1, 1), (-1, -1), (-1, 1)]:
+                    if 0 <= x + i < WORLD_WIDTH and 0 <= y + j < WORLD_HEIGHT:
+                        if self.distance[x + i][y + j] == length - 1:
+                            x += i
+                            y += j
+                            break
+                path.append((x, y))
 
-            if self.cells[self.selectedCellX][self.selectedCellY] != 0:
-                x, y = self.selectedCellX, self.selectedCellY
-                path = [(x, y)]
-
-                while not(x == self.cellX and y == self.cellY):
-                    length = self.cells[x][y]
-                    for i, j in [(-1, 0), (0, -1), (0, 1), (1, 0), (1, -1), (1, 1), (-1, -1), (-1, 1)]:
-                        if 0 <= x + i < WORLD_WIDTH and 0 <= y + j < WORLD_HEIGHT:
-                            if self.cells[x + i][y + j] == length - 1:
-                                x += i
-                                y += j
-                                break
-                    path.append((x, y))
-
-                path.reverse()
-                self.path = [i for i in path]
-            else:
-                self.path = []
+            path.reverse()
+            self.path = [i for i in path]
         else:
             self.path = []
 
-    def move(self):
+    def move(self, world):
         if len(self.path) > 1:
             self.cellX, self.cellY = self.path[1]
             self.path.pop(0)
+            self.updateDistance(world)
 
     def render(self, screen):
         pygame.draw.rect(screen, (0, 0, 255), (
@@ -94,7 +92,7 @@ class Player:
                 WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE,
                 WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE,
                 CELL_SIZE, CELL_SIZE
-            ), 10)
+            ), 8)
 
         if len(self.path) > 1:
             points = [(x * CELL_SIZE + WORLD_RENDER_DELTA_X + CELL_SIZE // 2,
@@ -144,7 +142,7 @@ def main():
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
     world = World()
-    player = Player()
+    player = Player(world)
 
     run = True
 
@@ -163,7 +161,7 @@ def main():
                     player.generatePath(world)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    player.move()
+                    player.move(world)
 
 
         screen.fill("black")
