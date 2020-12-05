@@ -88,11 +88,10 @@ class Player:
         ))
 
         if self.selectedCellX != -1 and self.selectedCellY != -1:
-            pygame.draw.rect(screen, (0, 255, 0), (
-                WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE,
-                WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE,
-                CELL_SIZE, CELL_SIZE
-            ), 8)
+            s = pygame.Surface((CELL_SIZE, CELL_SIZE))
+            s.set_alpha(125)
+            s.fill((0, 255, 0))
+            screen.blit(s, (WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE, WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE))
 
         if len(self.path) > 1:
             points = [(x * CELL_SIZE + WORLD_RENDER_DELTA_X + CELL_SIZE // 2,
