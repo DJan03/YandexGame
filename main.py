@@ -6,16 +6,22 @@ WIDTH, HEIGHT = 800, 600
 NONE = 0
 BLOCK = 1
 
-WORLD_WIDTH = 10
-WORLD_HEIGHT = 10
+WORLD_WIDTH = 16
+WORLD_HEIGHT = 11
 
 CELL_SIZE = 50
 
-WORLD_RENDER_DELTA_X = 150
-WORLD_RENDER_DELTA_Y = 50
+WORLD_RENDER_DELTA_X = 0
+WORLD_RENDER_DELTA_Y = 0
 
-class Player:
-    def __init__(self, world):
+
+class Rendered:
+    def render(self, screen):
+        pass
+
+
+class Entity(Rendered):
+    def __init__(self, world, mobile=True):
         self.cellX = 5
         self.cellY = 5
 
@@ -25,7 +31,9 @@ class Player:
         self.selectedCellY = -1
 
         self.distance = []
-        self.updateDistance(world)
+
+        if mobile:
+            self.updateDistance(world)
 
     def selectCell(self, x, y):
         self.selectedCellX = x
@@ -45,13 +53,15 @@ class Player:
                 if 0 <= x + i < WORLD_WIDTH and 0 <= y + j < WORLD_HEIGHT:
                     self.pathF(x + i, y + j, length)
 
-            for i, j, x1, y1, x2, y2 in [(-1, -1, -1, 0, 0, -1), (1, -1, 1, 0, 0, -1), (-1, 1, -1, 0, 0, 1), (1, 1, 1, 0, 0, 1)]:
+            for i, j, x1, y1, x2, y2 in [(-1, -1, -1, 0, 0, -1), (1, -1, 1, 0, 0, -1), (-1, 1, -1, 0, 0, 1),
+                                         (1, 1, 1, 0, 0, 1)]:
                 if 0 <= x + i < WORLD_WIDTH and 0 <= y + j < WORLD_HEIGHT:
                     if self.distance[x + x1][y + y1] != -1 and self.distance[x + x2][y + y2] != -1:
                         self.pathF(x + i, y + j, length)
 
     def updateDistance(self, world):
-        self.distance = [[0 if world.matrix[i][j] == NONE else -1 for j in range(WORLD_HEIGHT)] for i in range(WORLD_WIDTH)]
+        self.distance = [[0 if world.matrix[i][j] == NONE else -1 for j in range(WORLD_HEIGHT)] for i in
+                         range(WORLD_WIDTH)]
         self.pathF(self.cellX, self.cellY, 0)
 
     def generatePath(self):
@@ -59,7 +69,7 @@ class Player:
             x, y = self.selectedCellX, self.selectedCellY
             path = [(x, y)]
 
-            while not(x == self.cellX and y == self.cellY):
+            while not (x == self.cellX and y == self.cellY):
                 length = self.distance[x][y]
                 for i, j in [(-1, 0), (0, -1), (0, 1), (1, 0), (1, -1), (1, 1), (-1, -1), (-1, 1)]:
                     if 0 <= x + i < WORLD_WIDTH and 0 <= y + j < WORLD_HEIGHT:
@@ -80,6 +90,11 @@ class Player:
             self.path.pop(0)
             self.updateDistance(world)
 
+
+class Player(Entity):
+    def __init__(self, world):
+        super().__init__(world, True)
+
     def render(self, screen):
         pygame.draw.rect(screen, (0, 0, 255), (
             WORLD_RENDER_DELTA_X + self.cellX * CELL_SIZE + 5,
@@ -91,7 +106,8 @@ class Player:
             s = pygame.Surface((CELL_SIZE, CELL_SIZE))
             s.set_alpha(125)
             s.fill((0, 255, 0))
-            screen.blit(s, (WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE, WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE))
+            screen.blit(s, (WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE,
+                            WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE))
 
         if len(self.path) > 1:
             points = [(x * CELL_SIZE + WORLD_RENDER_DELTA_X + CELL_SIZE // 2,
@@ -99,9 +115,11 @@ class Player:
                       for x, y in self.path]
             pygame.draw.lines(screen, "white", False, points, CELL_SIZE // 5)
 
-class World:
+
+class World(Rendered):
     def __init__(self):
-        self.matrix = [[choice([NONE, NONE, NONE, NONE, BLOCK]) for _ in range(WORLD_HEIGHT)] for _ in range(WORLD_WIDTH)]
+        self.matrix = [[choice([NONE, NONE, NONE, NONE, BLOCK]) for _ in range(WORLD_HEIGHT)] for _ in
+                       range(WORLD_WIDTH)]
 
         self.selectedCellX = -1
         self.selectedCellY = -1
@@ -128,13 +146,18 @@ class World:
                     color = (200, 200, 200)
                 elif self.matrix[i][j] == BLOCK:
                     color = (125, 125, 125)
-                
+
                 pygame.draw.rect(screen, color, (
                     WORLD_RENDER_DELTA_X + i * CELL_SIZE,
                     WORLD_RENDER_DELTA_Y + j * CELL_SIZE,
                     CELL_SIZE,
                     CELL_SIZE
                 ))
+
+
+def renderObjects(screen, objects):
+    for obj in objects:
+        obj.render(screen)
 
 def main():
     pygame.init()
@@ -162,15 +185,14 @@ def main():
                 if event.button == 1:
                     player.move(world)
 
-
         screen.fill("black")
 
-        world.render(screen)
-        player.render(screen)
+        renderObjects(screen, [world, player])
 
         pygame.display.flip()
 
     pygame.quit()
+
 
 if __name__ == "__main__":
     main()
