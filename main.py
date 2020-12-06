@@ -14,6 +14,8 @@ CELL_SIZE = 50
 WORLD_RENDER_DELTA_X = 0
 WORLD_RENDER_DELTA_Y = 0
 
+DO_TURN = False
+
 
 class Rendered:
     def render(self, screen):
@@ -21,9 +23,9 @@ class Rendered:
 
 
 class Entity(Rendered):
-    def __init__(self, world, mobile=True):
-        self.cellX = 5
-        self.cellY = 5
+    def __init__(self, world, cellX, cellY, mobile=True):
+        self.cellX = cellX
+        self.cellY = cellY
 
         self.path = []
 
@@ -33,7 +35,9 @@ class Entity(Rendered):
         self.distance = []
 
         if mobile:
-            self.updateDistance(world)
+            self.updateDistance(world, [])
+
+        self.health = 100
 
     def selectCell(self, x, y):
         self.selectedCellX = x
@@ -59,9 +63,9 @@ class Entity(Rendered):
                     if self.distance[x + x1][y + y1] != -1 and self.distance[x + x2][y + y2] != -1:
                         self.pathF(x + i, y + j, length)
 
-    def updateDistance(self, world):
-        self.distance = [[0 if world.matrix[i][j] == NONE else -1 for j in range(WORLD_HEIGHT)] for i in
-                         range(WORLD_WIDTH)]
+    def updateDistance(self, world, entities):
+        y = lambda i, j: (i in [x.cellX for x in entities] and j in [y.cellY for y in entities])
+        self.distance = [[0 if ((world.matrix[i][j] == NONE) or y(i, j)) else -1 for j in range(WORLD_HEIGHT)] for i in range(WORLD_WIDTH)]
         self.pathF(self.cellX, self.cellY, 0)
 
     def generatePath(self):
@@ -84,16 +88,55 @@ class Entity(Rendered):
         else:
             self.path = []
 
-    def move(self, world):
+    def move(self, world, entities):
         if len(self.path) > 1:
+            if (self.path[1][0] in [i.cellX for i in entities] and self.path[1][1] in [i.cellY for i in entities]):
+                return
             self.cellX, self.cellY = self.path[1]
             self.path.pop(0)
-            self.updateDistance(world)
+            self.updateDistance(world, entities)
+
+
+class Enemy(Entity):
+    def __init__(self, world, cellX, cellY, target, mobile=True):
+        super().__init__(world, cellX, cellY, mobile)
+
+        self.selectedCellX = target.cellX
+        self.selectedCellY = target.cellY
+
+    def doTurn(self, world, target, entities):
+        self.selectedCellX = target.cellX
+        self.selectedCellY = target.cellY
+        self.generatePath()
+        self.move(world, entities)
+
+    def render(self, screen):
+        pygame.draw.rect(screen, (255, 0, 0), (
+            WORLD_RENDER_DELTA_X + self.cellX * CELL_SIZE + 5,
+            WORLD_RENDER_DELTA_Y + self.cellY * CELL_SIZE + 5,
+            CELL_SIZE - 10, CELL_SIZE - 10
+        ))
 
 
 class Player(Entity):
-    def __init__(self, world):
-        super().__init__(world, True)
+    def __init__(self, world, cellX, cellY):
+        super().__init__(world, cellX, cellY, True)
+
+    def onControl(self, event, world, entities):
+        if event.type == pygame.MOUSEMOTION:
+            x, y = event.pos
+            x1, y1 = world.pointToCell(x, y)
+
+            if x1 == -1 and y1 == -1:
+                self.unselectCell()
+            else:
+                self.selectCell(x1, y1)
+                self.generatePath()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                global DO_TURN
+                DO_TURN = True
+                self.move(world, entities)
 
     def render(self, screen):
         pygame.draw.rect(screen, (0, 0, 255), (
@@ -159,12 +202,16 @@ def renderObjects(screen, objects):
     for obj in objects:
         obj.render(screen)
 
+
 def main():
+    global DO_TURN
+
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
     world = World()
-    player = Player(world)
+    player = Player(world, 5, 5)
+    enemies = [Enemy(world, 8, i, player) for i in [4, 6]]
 
     run = True
 
@@ -172,22 +219,16 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            if event.type == pygame.MOUSEMOTION:
-                x, y = event.pos
-                x1, y1 = world.pointToCell(x, y)
+            player.onControl(event, world, enemies)
 
-                if x1 == -1 and y1 == -1:
-                    player.unselectCell()
-                else:
-                    player.selectCell(x1, y1)
-                    player.generatePath()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    player.move(world)
+        if DO_TURN:
+            DO_TURN = False
+            for i in range(len(enemies)):
+                enemies[i].doTurn(world, player, enemies[:i] + enemies[i + 1:] + [player])
 
         screen.fill("black")
 
-        renderObjects(screen, [world, player])
+        renderObjects(screen, [world, player] + enemies)
 
         pygame.display.flip()
 
