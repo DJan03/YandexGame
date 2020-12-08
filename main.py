@@ -104,6 +104,17 @@ class Player(Entity):
         self.t = 1
 
     def render(self, screen):
+        if self.selectedCellX != -1 and self.selectedCellY != -1:
+            screen.blit(self.select_img, (WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE,
+                            WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE))
+
+        if len(self.path) > 1:
+            points = [(x * CELL_SIZE + WORLD_RENDER_DELTA_X,
+                       y * CELL_SIZE + WORLD_RENDER_DELTA_Y)
+                      for x, y in self.path[1:len(self.path) - 1]]
+            for x, y in points:
+                screen.blit(self.circle_img, (x, y))
+
         if self.t > 0:
             bX = WORLD_RENDER_DELTA_X + self.cellX * CELL_SIZE
             bY = WORLD_RENDER_DELTA_Y + self.cellY * CELL_SIZE
@@ -119,16 +130,6 @@ class Player(Entity):
 
         screen.blit(self.player_img, (self.imgX, self.imgY))
 
-        if self.selectedCellX != -1 and self.selectedCellY != -1:
-            screen.blit(self.select_img, (WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE,
-                            WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE))
-
-        if len(self.path) > 1:
-            points = [(x * CELL_SIZE + WORLD_RENDER_DELTA_X,
-                       y * CELL_SIZE + WORLD_RENDER_DELTA_Y)
-                      for x, y in self.path[1:len(self.path) - 1]]
-            for x, y in points:
-                screen.blit(self.circle_img, (x, y))
 
 
 class World(Rendered):
