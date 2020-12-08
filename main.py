@@ -97,22 +97,36 @@ class Player(Entity):
 
         self.player_img = pygame.image.load("player-01.png")
         self.circle_img = pygame.image.load("circle.png")
+        self.select_img = pygame.image.load("select.png")
+
+        self.imgX = WORLD_RENDER_DELTA_X + self.cellX * CELL_SIZE
+        self.imgY = WORLD_RENDER_DELTA_Y + self.cellY * CELL_SIZE
+        self.t = 1
 
     def render(self, screen):
-        screen.blit(self.player_img, (WORLD_RENDER_DELTA_X + self.cellX * CELL_SIZE,
-                            WORLD_RENDER_DELTA_Y + self.cellY * CELL_SIZE))
+        if self.t > 0:
+            bX = WORLD_RENDER_DELTA_X + self.cellX * CELL_SIZE
+            bY = WORLD_RENDER_DELTA_Y + self.cellY * CELL_SIZE
+
+            self.imgX = (self.t * self.imgX) + ((1 - self.t) * bX)
+            self.imgY = (self.t * self.imgY) + ((1 - self.t) * bY)
+
+            self.t -= 0.00001
+        else:
+            self.t = 0
+            self.imgX = WORLD_RENDER_DELTA_X + self.cellX * CELL_SIZE
+            self.imgY = WORLD_RENDER_DELTA_Y + self.cellY * CELL_SIZE
+
+        screen.blit(self.player_img, (self.imgX, self.imgY))
 
         if self.selectedCellX != -1 and self.selectedCellY != -1:
-            s = pygame.Surface((CELL_SIZE, CELL_SIZE))
-            s.set_alpha(125)
-            s.fill((0, 255, 0))
-            screen.blit(s, (WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE,
+            screen.blit(self.select_img, (WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE,
                             WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE))
 
         if len(self.path) > 1:
             points = [(x * CELL_SIZE + WORLD_RENDER_DELTA_X,
                        y * CELL_SIZE + WORLD_RENDER_DELTA_Y)
-                      for x, y in self.path[1:]]
+                      for x, y in self.path[1:len(self.path) - 1]]
             for x, y in points:
                 screen.blit(self.circle_img, (x, y))
 
