@@ -106,7 +106,7 @@ class Player(Entity):
     def render(self, screen):
         if self.selectedCellX != -1 and self.selectedCellY != -1:
             screen.blit(self.select_img, (WORLD_RENDER_DELTA_X + self.selectedCellX * CELL_SIZE,
-                            WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE))
+                                          WORLD_RENDER_DELTA_Y + self.selectedCellY * CELL_SIZE))
 
         if len(self.path) > 1:
             points = [(x * CELL_SIZE + WORLD_RENDER_DELTA_X,
@@ -131,7 +131,6 @@ class Player(Entity):
         screen.blit(self.player_img, (self.imgX, self.imgY))
 
 
-
 class World(Rendered):
     def __init__(self):
         self.matrix = [[choice([NONE, NONE, NONE, NONE, BLOCK]) for _ in range(WORLD_HEIGHT)] for _ in
@@ -146,6 +145,9 @@ class World(Rendered):
 
         self.path = []
 
+        self.grass_img = pygame.image.load("grass.png")
+        self.rock_img = pygame.image.load("rock.png")
+
     def pointToCell(self, x, y):
         newX, newY = (x - WORLD_RENDER_DELTA_X) // CELL_SIZE, (y - WORLD_RENDER_DELTA_Y) // CELL_SIZE
         if 0 <= newX < WORLD_WIDTH and 0 <= newY < WORLD_HEIGHT:
@@ -156,24 +158,23 @@ class World(Rendered):
     def render(self, screen):
         for i in range(WORLD_WIDTH):
             for j in range(WORLD_HEIGHT):
-                color = (0, 0, 0)
+                img = None
 
                 if self.matrix[i][j] == NONE:
-                    color = (200, 200, 200)
+                    img = self.grass_img
                 elif self.matrix[i][j] == BLOCK:
-                    color = (125, 125, 125)
+                    img = self.rock_img
 
-                pygame.draw.rect(screen, color, (
+                screen.blit(img, (
                     WORLD_RENDER_DELTA_X + i * CELL_SIZE,
-                    WORLD_RENDER_DELTA_Y + j * CELL_SIZE,
-                    CELL_SIZE,
-                    CELL_SIZE
+                    WORLD_RENDER_DELTA_Y + j * CELL_SIZE
                 ))
 
 
 def renderObjects(screen, objects):
     for obj in objects:
         obj.render(screen)
+
 
 def main():
     pygame.init()
